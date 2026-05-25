@@ -1,0 +1,187 @@
+index.html
+# Loading the packages. 
+library(tidyverse) 
+library(janitor) 
+library(ggcorrplot) 
+library(corrplot) 
+library(readr)
+library(haven)
+
+# Loading the dataset. 
+data <- read_csv("Diabetes1.csv") 
+
+# Data Exploration. 
+glimpse(data) 
+view(data)
+# checking missing values 
+anyNA(data) 
+# checking dublicates 
+sum(duplicated(data)) 
+ 
+data$Outcome <- as.factor(data$Outcome) 
+
+numeriv_vars <- data %>%  
+  select(where(is.numeric)) 
+
+cor_matrix <- cor(numeriv_vars) 
+
+ggcorrplot(cor_matrix)
+
+
+# CORRELATION. 
+# Pearson Correlation between Glucose and Insulin 
+cor1 = data %>% select(-Outcome) %>% cor(method = "pearson") 
+cor1 
+windows()
+ggcorrplot(cor1) 
+
+# The results showed a moderate positive correlation between glucose and insulin levels (r = 0.32), 
+
+# indicating that higher glucose levels were associated with higher insulin levels. Glucose also showed  
+
+# a moderate positive correlation with BMI (r = 0.461) and age (r = 0.435), suggesting that increased body mass index 
+
+# and older age were associated with higher glucose levels. Additionally, insulin and BMI demonstrated 
+
+# a weak-to-moderate positive correlation (r = 0.393). Most other variables exhibited very weak or negligible correlations,  
+
+# indicating minimal linear relationships among them. 
+
+# Spearman Correlation 
+cor2 = data %>% select(-Outcome) %>% cor(method = "spearman") 
+cor2 
+windows()
+ggcorrplot(cor2) 
+
+# Kendall's tau correlation 
+
+cor3 = data %>% select(-Outcome) %>% cor(method = "kendall") 
+cor3
+windows()
+ggcorrplot(cor3)
+# correlation between two variables 
+cor3 <- cor(data$Glucose, 
+    data$BMI, 
+    method = "kendall") 
+ 
+cor3 
+
+
+# Visualization of the correlation matrix 
+windows()
+ggcorrplot(cor1,title = "Correlation Heatmap",lab_col = "black", 
+           lab = TRUE, legend.title = "Pearson Correlation", 
+           lab_size = 3, ggtheme = theme_classic(), 
+           outline.color = "black", 
+           colors = c("orange", "green", "blue"))
+
+windows()
+ggcorrplot(cor2,title = "Correlation Heatmap",lab_col = "black", 
+           lab = TRUE, legend.title = "Pearson Correlation", 
+           lab_size = 3, ggtheme = theme_classic(), 
+           outline.color = "black", 
+           colors = c("pink", "blue", "red"))
+
+windows()
+ggcorrplot(cor3,title = "Correlation Heatmap",lab_col = "black", 
+           lab = TRUE, legend.title = "Pearson Correlation", 
+           lab_size = 3, ggtheme = theme_classic(), 
+           outline.color = "black", 
+           colors = c("100", "75", "150"))
+
+# One Sample T-Test 
+# Test if average BMI differs from 25 
+t.test(data$BMI, mu = 25) 
+
+# A one-sample t-test I conducted to determine whether the mean BMI differed from 25. 
+
+#The results showed that the mean BMI (M = 32.19) is significantly higher than
+#25,t(1999) = 39.5, p < 0.001. The 95% confidence interval (31.84, 32.55) 
+#did not include 25, 
+#confirming a statistically significant difference. These results suggest that
+#the average BMI in the dataset 
+#is significantly above the normal reference value of 25. 
+#Therefore we reject the null hypothesis and conclude the laternative that the
+#observed mean is 
+#Diffrent frm the theoretical one.
+
+# Checking for data normality. 
+windows()
+qqnorm(data$BMI) 
+qqline(data$BMI, col = "red") 
+
+windows()
+hist(data$BMI, probability = TRUE, breaks = 50) 
+lines(density(data$BMI), col = "blue", lwd = 2)
+
+# Check for homogeneity of variance 
+library(car) 
+leveneTest(BMI ~ as.factor(Outcome), data = data)
+
+# There is strong evidence that the variances of BMI are NOT equal across  Outcome groups. 
+# This means you have heteroscedasticity (unequal variances). Since the assumption is violated.
+# we need to use Wilcoxon Rank-Sum test.
+
+# Willcoxon test  
+wilcox.test(BMI ~ Outcome, data = data) 
+
+# Describe Direction of Difference 
+aggregate(BMI ~ Outcome, data = data, median) 
+
+# Paired sample ttest 
+# Create paired sample data 
+data_paired <- data.frame( 
+  ID = 1:10, 
+  BP_Before = c(135, 142, 130, 138, 140, 137, 145, 139, 136, 141), 
+  BP_After  = c(128, 134, 125, 130, 132, 129, 136, 130, 128, 133)) 
+
+# View the dataset 
+print(data_paired)
+
+# Perform paired t-test 
+t.test(data_paired$BP_Before, data_paired$BP_After, paired = TRUE)
+
+# Check Assumptions 
+# Check difference normality 
+diff_bp <- data_paired$BP_Before - data_paired$BP_After 
+shapiro.test(diff_bp)  # Normality of difference scores
+
+# Histogram.
+windows()
+hist(diff_bp, 
+     main = "Distribution of Blood Pressure Differences", 
+     xlab = "BP Difference", 
+     col = "skyblue", 
+     border = "white", 
+     breaks = 20)
+
+# Wilcoxon test for non normal data 
+wilcox.test(data_paired$BP_Before, data_paired$BP_After, paired = TRUE) 
+median(data_paired$BP_Before - data_paired$BP_After)
+
+# Since the median is 8 positive it means that there was a decrease of median by 8 units after treatment. 
+# There is statistically significant evidence that blood pressure decreased 
+# after the intervention,with a median reduction of approximately 8 units.
+
+
+# independent sample t test
+
+# Simulated data for two independent groups
+group_A <- rnorm(30, mean = 70, sd = 8)
+group_B <- rnorm(30, mean = 76, sd = 10)
+
+# Combine into a data frame
+data1 <- data.frame(
+  score = c(group_A, group_B),
+  group = factor(c(rep("A", 30), rep("B", 30))))
+
+# View first rows
+head(data1)
+print(data1)
+
+# check group means 
+aggregate(score ~ group, data = data1, mean)
+
+# checking the magnitude of their differences 
+tapply(data1$score, data1$group, mean)
+diff(tapply(data1$score, data1$group, mean))
